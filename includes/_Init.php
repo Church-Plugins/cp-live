@@ -92,7 +92,7 @@ class _Init {
 	 */
 	public function enqueue_scripts() {
 		$this->enqueue->enqueue( 'styles', 'main', [] );
-		$this->enqueue->enqueue( 'scripts', 'main', [] );
+		$this->enqueue->enqueue( 'scripts', 'main', [ 'js_dep' => [ 'jquery' ] ]);
 	}
 
 	/**
