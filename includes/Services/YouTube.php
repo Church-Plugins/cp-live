@@ -170,17 +170,17 @@ class YouTube extends Service{
 			return '';
 		}
 
-    $output = $wp_embed->autoembed( $video_url );
+		$output = $wp_embed->autoembed( $video_url );
 
-    if( $this->get( 'show_subscribe_button' ) == 'show' ) {
-      $channel_id = $this->get( 'channel_id' );
+		if ( $this->get( 'show_subscribe_button', 'show' ) == 'show' ) {
+			$channel_id = $this->get( 'channel_id' );
 
-      if( $channel_id && ! wp_script_is( 'google_platform_js', 'enqueued' ) ) {
-        wp_enqueue_script( 'google_platform_js', 'https://apis.google.com/js/platform.js' );
-      }
-  
-      $output .= "<div class='cp-subscribe-btn'><div class='g-ytsubscribe' data-channelid='$channel_id' data-layout='default' data-count='default'></div><div>";
-    } 
+			if ( $channel_id && ! wp_script_is( 'google_platform_js', 'enqueued' ) ) {
+				wp_enqueue_script( 'google_platform_js', 'https://apis.google.com/js/platform.js' );
+				$output .= "<div class='cp-subscribe-btn'><div class='g-ytsubscribe' data-channelid='$channel_id' data-layout='default' data-count='default'></div><div>";
+			}
+
+		}
 
 		return $output;
   }

@@ -9,22 +9,22 @@
 	background: var(--cp-color-ui-primary);
 	color: var(--cp-color-text-inverted);
 	padding: var(--cp-gap--sm);
-	
+
 	&--element {
 		line-height: 1;
 		width: calc( 2em + var(--cp-gap--sm) * 2);
 		text-align: center;
 		position: relative;
 		float: left;
-		
+
 		&--label {
 			font-size: var(--cp-font-size--xs);
 		}
-		
+
 		> span {
 			display: block;
 		}
-		
+
 		&:not(:last-child):after {
 			position: absolute;
 			right: 0;
@@ -32,5 +32,12 @@
 			top: 50%;
 			margin-top: -0.5em;
 		}
+	}
+}
+
+.cp-live-container {
+	.cp-subscribe-btn {
+		margin-top: var(--cp-gap--sm);
+		text-align: right;
 	}
 }
