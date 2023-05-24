@@ -178,7 +178,7 @@ class YouTube extends Service{
 
 			if ( $channel_id && ! wp_script_is( 'google_platform_js', 'enqueued' ) ) {
 				wp_enqueue_script( 'google_platform_js', 'https://apis.google.com/js/platform.js' );
-				$output .= "<div class='cp-subscribe-btn'><div class='g-ytsubscribe' data-channelid='$channel_id' data-layout='default' data-count='default'></div><div>";
+				$output .= "<div class='cp-subscribe-btn'><div class='g-ytsubscribe' data-channelid='$channel_id' data-layout='default' data-count='default'></div></div>";
 			}
 
 		}
