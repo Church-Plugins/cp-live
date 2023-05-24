@@ -19,6 +19,9 @@ npm run build
 
 ### Change Log
 
+#### 1.1.0
+* Add YouTube Subscribe button
+
 #### 1.0.6
 * Update CP Core
 

@@ -160,6 +160,7 @@ class YouTube extends Service{
 	 *
 	 * @return string
 	 * @since  1.0.0
+	 * @updated 1.1.0 add subscribe button
 	 *
 	 * @author Tanner Moushey
 	 */
@@ -190,6 +191,7 @@ class YouTube extends Service{
 	 * @param $cmb
 	 *
 	 * @since  1.0.0
+	 * @updated 1.1.0 add subscribe button settings
 	 *
 	 * @author Tanner Moushey
 	 */
