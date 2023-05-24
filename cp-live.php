@@ -3,7 +3,7 @@
  * Plugin Name: CP Live
  * Plugin URL: https://churchplugins.com
  * Description: Automatically detect and show live video feeds.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Church Plugins
  * Author URI: https://churchplugins.com
  * Text Domain: cp-live
@@ -12,7 +12,7 @@
 
 if( !defined( 'CP_LIVE_PLUGIN_VERSION' ) ) {
 	 define ( 'CP_LIVE_PLUGIN_VERSION',
-	 	'1.1.0'
+	 	'1.1.1'
 	);
 }
 
