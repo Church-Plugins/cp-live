@@ -240,6 +240,13 @@ class Settings {
 	
 	public static function schedule_fields( $cmb2 ) {
 
+		$cmb2->add_field( array(
+			'name' => __( 'Time Zone', 'cp-live' ),
+			'id'   => 'timezone',
+			'type' => 'select_timezone',
+			'desc' => __( 'Set the timezone these schedules are based on.', 'cp-live' ),
+		) );
+
 		$group_field_id = $cmb2->add_field( array(
 			'id'         => 'schedule_group',
 			'type'       => 'group',

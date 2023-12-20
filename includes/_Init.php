@@ -206,7 +206,10 @@ class _Init {
 			}
 
 			foreach ( $schedule['time'] as $time ) {
-				$start = strtotime( 'today ' . $time, current_time( 'timestamp' ) ) - $buffer;
+				$timezone = new \DateTimeZone( Settings::get( 'timezone', 'GMT' ) );
+				$date     = new \DateTime( 'today ' . $time, $timezone );
+
+				$start = $date->getTimestamp() - $buffer;
 				$end   = $start + $duration + $buffer;
 
 				// if we fall in the window, continue with the check
@@ -247,7 +250,17 @@ class _Init {
 			}
 
 			foreach ( $schedule['time'] as $time ) {
-				$times[] = strtotime( $schedule['day'] . ' ' . $time, current_time( 'timestamp' ) );
+				$timezone    = new \DateTimeZone( Settings::get( 'timezone', 'GMT' ) );
+				$time_string = $schedule['day'] . ' ' . $time;
+				$date        = new \DateTime( $time_string, $timezone );
+
+				// check if timestamp has passed
+				if ( $date->getTimestamp() < current_time( 'timestamp' ) ) {
+					 // add 1 week
+					$date->add( new \DateInterval( 'P1W' ) );
+				}
+
+				$times[] = $date->getTimestamp();
 			}
 		}
 

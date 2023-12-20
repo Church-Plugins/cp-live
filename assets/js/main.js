@@ -11,8 +11,10 @@ import Timer from "easytimer.js";
 		$timers.each(function() {
 			let $this = $(this);
 			let startTime = $this.attr('data-start-time' );
-			
-			if ( ! startTime ) {
+
+			startTime = parseInt(startTime);
+
+			if ( isNaN(startTime) || ! startTime ) {
 				return;
 			}
 			
