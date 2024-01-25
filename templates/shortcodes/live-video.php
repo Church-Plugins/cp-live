@@ -31,7 +31,7 @@ if ( $location_id ) {
 
 		$output .= sprintf( '<hr /><div class="cp-live-location ast-row"><div class="cp-live-location--video ast-grid-common-col ast-width-md-6">%s</div><div class="cp-live-location--info ast-width-md-6 ast-grid-common-col">%s</div></div>',
 			$embed,
-			sprintf( '<h3><a href="%s">%s</a></h3><p>%s</p>', get_permalink( $location_id ) . '/live/', get_the_title( $location_id ), do_shortcode( "[cp-location-data field=service_times location=$location_id]" ) ),
+			sprintf( '<h3><a href="%s">%s</a></h3><p>%s</p>', get_permalink( $location_id ) . '/live/', get_the_title( $location_id ), do_shortcode( "[cp-location-data field=live_time_description location=$location_id]" ) ),
 		);
 	}
 
