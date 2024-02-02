@@ -20,7 +20,7 @@ npm run build
 ### Change Log
 
 #### 1.1.1
-* Fix HTLM Issue
+* Fix HTML Issue
 
 #### 1.1.0
 * Add YouTube Subscribe button
