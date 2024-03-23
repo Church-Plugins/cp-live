@@ -239,6 +239,13 @@ class CP_Locations {
 			'type' => 'checkbox',
 		) );
 
+		$cmb->add_field( array(
+			'name' => __( 'Live Time Description', 'cp-live' ),
+			'desc' => __( 'A description of when this location\'s livestream starts.', 'cp-live' ),
+			'id'   => 'live_time_description',
+			'type' => 'text',
+		) );
+
 		Settings::schedule_fields( $cmb );
 
 	}	
