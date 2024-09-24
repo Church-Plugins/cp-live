@@ -68,7 +68,7 @@ class Settings {
 
 	/**
 	 * Get Advanced option
-	 * 
+	 *
 	 * @param $key
 	 * @param $default
 	 *
@@ -97,10 +97,10 @@ class Settings {
 		$options = get_option( $group, [] );
 
 		$options[ $key ] = apply_filters( 'cp_live_settings_update', $value, $key, $group );
-		
+
 		return update_option( $group, $options );
 	}
-	
+
 	/**
 	 * Update service options
 	 *
@@ -119,7 +119,7 @@ class Settings {
 
 	/**
 	 * Update Advanced option
-	 * 
+	 *
 	 * @param $key
 	 * @param $value
 	 *
@@ -143,7 +143,7 @@ class Settings {
 
 	/**
 	 * Update the schedule when the options change
-	 * 
+	 *
 	 * @since  1.0.0
 	 *
 	 * @author Tanner Moushey
@@ -195,7 +195,7 @@ class Settings {
 			'id'   => 'live_stream_title',
 			'type' => 'title',
 		) );
-		
+
 		self::schedule_fields( $main_options );
 
 		foreach( cp_live()->services->get_active_services() as $service => $data ) {
@@ -209,17 +209,17 @@ class Settings {
 				'tab_title'    => $data['label'],
 				'display_cb'   => [ $this, 'options_display_with_tabs' ],
 			) );
-			
+
 			cp_live()->services->active[ $service ]->settings( $box );
 		}
 
 		$this->advanced_options();
 		$this->license_fields();
 	}
-	
+
 	protected function license_fields() {
 		$license = new \ChurchPlugins\Setup\Admin\License( 'cp_live_license', 424, CP_LIVE_STORE_URL, CP_LIVE_PLUGIN_FILE, get_admin_url( null, 'admin.php?page=cp_live_license' ) );
-		
+
 		/**
 		 * Registers settings page, and set main item as parent.
 		 */
@@ -237,7 +237,7 @@ class Settings {
 		$options = new_cmb2_box( $args );
 		$license->license_field( $options );
 	}
-	
+
 	public static function schedule_fields( $cmb2 ) {
 
 		$group_field_id = $cmb2->add_field( array(
@@ -287,8 +287,8 @@ class Settings {
 			),
 			'time_format' => 'h:i a',
 		) );
-		
-	} 
+
+	}
 
 	protected function item_options() {
 		/**
@@ -480,7 +480,7 @@ class Settings {
 				'pattern' => '\d*',
 			),
 		] );
-		
+
 		do_action( 'cp_live_settings_advanced', $advanced_options );
 
 		$advanced_options->add_field( array(
@@ -501,21 +501,21 @@ class Settings {
 				]
 			) );
 		}
-		
+
 		$advanced_options->add_field( array(
 			'name' => __( 'Force Pull' ),
 			'id'   => 'force_pull_title',
 			'type' => 'title',
-		) );		
-		
+		) );
+
 		$advanced_options->add_field( array(
 			'name' => __( 'Force Pull', 'cp-live' ),
 			'desc' => __( 'Check this box and save to force a check for a live feed right now. This will also reset the status to Not Live if no live feeds are found.', 'cp-live' ),
 			'id'   => 'feed_check',
 			'type' => 'checkbox',
-		) );	
+		) );
 	}
-	
+
 	/**
 	 * A CMB2 options-page display callback override which adds tab navigation among
 	 * CMB2 options pages which share this same display callback.
