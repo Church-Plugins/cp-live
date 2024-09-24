@@ -165,14 +165,29 @@ class YouTube extends Service{
 	 * @author Tanner Moushey
 	 */
 	public function get_embed() {
-		global $wp_embed;
-
 		if ( ! $video_url = $this->get( 'video_url' ) ) {
 			return '';
 		}
 
-		$output = $wp_embed->autoembed( $video_url );
+		// get ID from URL. Check for youtube.com or youtu.be formats
+		preg_match( '/v=([^&]+)|youtu\.be\/([^&]+)/', $video_url, $matches );
 
+		if ( $matches[1] ) {
+			$video_id = $matches[1];
+		} else if ( $matches[2] ) {
+			$video_id = $matches[2];
+		} else {
+			$video_id = '';
+		}
+
+		if ( empty( $video_id ) ) {
+			return '';
+		}
+
+		$output = sprintf( '<div class="cp-live-embed-container" style="width: 750px;">' );
+
+		$output .= sprintf( '<iframe class="cp-live-embed" style="max-width:100%%;" width="750" height="500" src="https://www.youtube.com/embed/%s" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>', $video_id );
+  
 		if ( $this->get( 'show_subscribe_button', 'show' ) == 'show' ) {
 			$channel_id = $this->get( 'channel_id' );
 
@@ -180,11 +195,12 @@ class YouTube extends Service{
 				wp_enqueue_script( 'google_platform_js', 'https://apis.google.com/js/platform.js' );
 				$output .= "<div class='cp-subscribe-btn'><div class='g-ytsubscribe' data-channelid='$channel_id' data-layout='default' data-count='default'></div></div>";
 			}
-
 		}
 
+		$output .= '</div>';
+
 		return $output;
-  }
+	}
 	/**
 	 * YouTube Settings
 	 *
