@@ -2,6 +2,7 @@
 
 namespace CP_Live\Integrations;
 
+use CP_Live\Admin\Request_Actions;
 use CP_Live\Admin\Settings;
 use CP_Live\Services\Service;
 
@@ -146,13 +147,21 @@ class CP_Locations {
 	}
 	
 	/**
-	 * Check the sites to see if any of them are live
-	 * 
+	 * Check the sites to see if any of them are live.
+	 *
+	 * Adds capability and nonce checks to admin request actions. Scheduled
+	 * cron calls this hook directly and is unchanged.
+	 *
+	 * @param array|null $request Request vars for an admin request action.
+	 *
 	 * @since  1.0.0
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function check() {
+	public function check( $request = null ) {
+		if ( ! Request_Actions::is_allowed( Request_Actions::LIVE_CHECK, $request ) ) {
+			return;
+		}
 
 		foreach( $this->sites_to_check() as $location_id => $data ) {
 

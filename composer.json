@@ -25,5 +25,14 @@
     "allow-plugins": {
       "composer/installers": true
     }
+  },
+  "scripts": {
+    "lint": [
+      "php -l includes/Admin/Request_Actions.php",
+      "php -l includes/Services/_Init.php",
+      "php -l includes/Integrations/CP_Locations.php",
+      "php -l tests/request-actions.php"
+    ],
+    "test": "php tests/request-actions.php"
   }
 }
