@@ -236,7 +236,6 @@ abstract class Service {
 			update_post_meta( $this->context, $this->id . '_' . $key, $value );
 		}
 	}
-	
-	abstract function get_embed();
-	
+
+	abstract public function get_embed();
 }
