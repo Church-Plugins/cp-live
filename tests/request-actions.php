@@ -12,9 +12,12 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 
 $failures = 0;
+$checks   = 0;
 
 function expect( $condition, $message ) {
-	global $failures;
+	global $failures, $checks;
+
+	$checks++;
 
 	if ( $condition ) {
 		echo "ok {$message}\n";
@@ -39,7 +42,29 @@ function reset_state() {
 	$_REQUEST                        = array();
 }
 
-function add_action( $hook, $callback, $priority = 10, $args = 1 ) {}
+function add_action( $hook, $callback, $priority = 10, $args = 1 ) {
+	$GLOBALS['test_hooks'][ $hook ][] = $callback;
+}
+
+function do_action( $hook ) {
+	$args = array_slice( func_get_args(), 1 );
+
+	if ( ! isset( $GLOBALS['dispatched_actions'] ) || ! is_array( $GLOBALS['dispatched_actions'] ) ) {
+		$GLOBALS['dispatched_actions'] = array();
+	}
+
+	$callbacks = isset( $GLOBALS['test_hooks'][ $hook ] ) ? $GLOBALS['test_hooks'][ $hook ] : array();
+
+	$GLOBALS['dispatched_actions'][] = array(
+		'hook'      => $hook,
+		'args'      => $args,
+		'callbacks' => count( $callbacks ),
+	);
+
+	foreach ( $callbacks as $callback ) {
+		call_user_func_array( $callback, $args );
+	}
+}
 
 function add_filter( $hook, $callback, $priority = 10, $args = 1 ) {}
 
@@ -62,6 +87,10 @@ function wp_verify_nonce( $nonce, $action = -1 ) {
 }
 
 function wp_doing_cron() {
+	if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
+		return true;
+	}
+
 	return ! empty( $GLOBALS['test_doing_cron'] );
 }
 
@@ -225,10 +254,43 @@ expect(
 	'scheduled hook with no request args is allowed'
 );
 
+// Bundled ChurchPlugins\Admin\_Init::request_actions() passes the request
+// array into the hook. DOING_CRON is defined and cp_action is set, and the
+// check still does nothing because those vars are present.
+$core_file = dirname( __DIR__ ) . '/includes/ChurchPlugins/Admin/_Init.php';
+if ( ! is_readable( $core_file ) ) {
+	fwrite( STDERR, "Bundled ChurchPlugins core is not checked out.\n" );
+	exit( 1 );
+}
+require_once $core_file;
+
+reset_state();
+$GLOBALS['test_sites'] = array(
+	10 => array( 'schedule' => array() ),
+);
+if ( ! defined( 'DOING_CRON' ) ) {
+	define( 'DOING_CRON', true );
+}
+$_GET['cp_action']     = 'cp_live_check';
+$_REQUEST['cp_action'] = 'cp_live_check';
+$GLOBALS['dispatched_actions'] = array();
+
+$core = ( new ReflectionClass( 'ChurchPlugins\\Admin\\_Init' ) )->newInstanceWithoutConstructor();
+$core->request_actions();
+
+$dispatch = isset( $GLOBALS['dispatched_actions'][0] ) ? $GLOBALS['dispatched_actions'][0] : array();
+expect(
+	! empty( $dispatch['callbacks'] )
+	&& isset( $dispatch['hook'] ) && 'cp_live_check' === $dispatch['hook']
+	&& isset( $dispatch['args'][0]['cp_action'] ) && 'cp_live_check' === $dispatch['args'][0]['cp_action']
+	&& ! ran_check(),
+	'bundled request dispatch during cron does nothing'
+);
+
 if ( $failures > 0 ) {
-	fwrite( STDERR, "{$failures} failed\n" );
+	fwrite( STDERR, "{$checks} checks, {$failures} failed\n" );
 	exit( 1 );
 }
 
-echo "All checks passed\n";
+echo "{$checks} checks passed\n";
 exit( 0 );
