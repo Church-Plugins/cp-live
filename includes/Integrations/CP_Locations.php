@@ -198,7 +198,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function flush_cache() {
+	public function flush_cache( $post_id = null ) {
+		if ( ! is_numeric( $post_id ) ) {
+			return;
+		}
+
 		delete_site_transient( 'cp_sites_to_check' );
 	}
 	
@@ -209,7 +213,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function location_meta() {
+	public function location_meta( $cmb = null, $location = null ) {
+		if ( ! Service::is_cmb2_box( $cmb ) ) {
+			return;
+		}
+
 		if ( ! function_exists( 'cp_locations' ) ) {
 			return;
 		}
@@ -306,7 +314,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function advanced_settings( $cmb ) {
+	public function advanced_settings( $cmb = null ) {
+		if ( ! Service::is_cmb2_box( $cmb ) ) {
+			return;
+		}
+
 		$cmb->add_field( array(
 			'name'    => __( 'Enable Location Streams', 'cp-live' ),
 			'id'      => 'cp_locations_enabled',
@@ -327,7 +339,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function maybe_force_pull() {
+	public function maybe_force_pull( $request = null ) {
+		if ( null !== $request ) {
+			return;
+		}
+
 		global $pagenow;
 		
 		if ( ( $pagenow != 'post.php' ) || empty( $_GET['post'] ) ) {

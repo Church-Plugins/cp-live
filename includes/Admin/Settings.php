@@ -155,7 +155,10 @@ class Settings {
 		}
 	}
 
-	public function register_main_options_metabox() {
+	public function register_main_options_metabox( $box = null ) {
+		if ( null !== $box && ! \CP_Live\Services\Service::is_cmb2_box( $box ) ) {
+			return;
+		}
 
 		/**
 		 * Registers main options page menu item and form.

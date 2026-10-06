@@ -107,7 +107,10 @@ abstract class Service {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function settings( $cmb ) {
+	public function settings( $cmb = null ) {
+		if ( ! self::is_cmb2_box( $cmb ) ) {
+			return;
+		}
 
 		// add prefix to fields if we are not in the global context. Other services may use the same id.
 		$prefix = 'global' != $this->context ? $this->id . '_' : '';
@@ -145,7 +148,11 @@ abstract class Service {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function live_override( $updated, $action, $field ) {
+	public function live_override( $updated = null, $action = null, $field = null ) {
+		if ( ! is_object( $field ) || ! method_exists( $field, 'get_cmb' ) ) {
+			return;
+		}
+
 		if ( ! $updated ) {
 			return;
 		}
@@ -179,6 +186,17 @@ abstract class Service {
 	 */
 	public function set_context( $context = 'global' ) {
 		$this->context = $context;
+	}
+
+	/**
+	 * Whether this value can take settings fields.
+	 *
+	 * @param mixed $cmb Value passed into a settings callback.
+	 *
+	 * @return bool
+	 */
+	public static function is_cmb2_box( $cmb ) {
+		return is_object( $cmb ) && method_exists( $cmb, 'add_field' );
 	}
 	
 	/**

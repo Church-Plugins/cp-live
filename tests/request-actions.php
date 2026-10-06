@@ -37,6 +37,11 @@ function reset_state() {
 	$GLOBALS['valid_nonce']          = 'valid-nonce';
 	$GLOBALS['valid_nonce_action']   = 'cp_live_check';
 	$GLOBALS['test_sites']           = array();
+	$GLOBALS['test_options']         = array();
+	$GLOBALS['state_changes']        = 0;
+	$GLOBALS['schedule_checked']     = false;
+	$GLOBALS['locale_loaded']        = false;
+	$GLOBALS['plugin_active_called'] = false;
 	$_GET                            = array();
 	$_POST                           = array();
 	$_REQUEST                        = array();
@@ -69,6 +74,10 @@ function do_action( $hook ) {
 function add_filter( $hook, $callback, $priority = 10, $args = 1 ) {}
 
 function get_option( $key, $default = false ) {
+	if ( isset( $GLOBALS['test_options'] ) && is_array( $GLOBALS['test_options'] ) && array_key_exists( $key, $GLOBALS['test_options'] ) ) {
+		return $GLOBALS['test_options'][ $key ];
+	}
+
 	return $default;
 }
 
@@ -286,6 +295,347 @@ expect(
 	&& ! ran_check(),
 	'bundled request dispatch during cron does nothing'
 );
+
+$GLOBALS['test_core'] = $core;
+
+function __( $text, $domain = 'default' ) {
+	return $text;
+}
+
+function esc_html__( $text, $domain = 'default' ) {
+	return $text;
+}
+
+function absint( $maybeint ) {
+	return abs( (int) $maybeint );
+}
+
+function update_option( $option, $value ) {
+	$GLOBALS['state_changes']++;
+
+	return true;
+}
+
+function update_post_meta( $post_id, $meta_key, $meta_value ) {
+	$GLOBALS['state_changes']++;
+
+	return true;
+}
+
+function delete_site_transient( $transient ) {
+	$GLOBALS['state_changes']++;
+
+	return true;
+}
+
+function get_template_directory() {
+	return '/tmp';
+}
+
+function get_template_directory_uri() {
+	return 'http://example.test';
+}
+
+function trailingslashit( $value ) {
+	return rtrim( (string) $value, '/\\' ) . '/';
+}
+
+function plugins_url( $path = '', $plugin = '' ) {
+	return 'http://example.test/' . $path;
+}
+
+function get_user_locale() {
+	$GLOBALS['locale_loaded'] = true;
+
+	return 'en_US';
+}
+
+function wp_next_scheduled( $hook ) {
+	$GLOBALS['schedule_checked'] = true;
+
+	return true;
+}
+
+function is_plugin_active( $plugin ) {
+	$GLOBALS['plugin_active_called'] = true;
+
+	return true;
+}
+
+function settings_box() {
+	return new class {
+		public $fields = array();
+
+		public function add_field( $field ) {
+			$this->fields[] = $field;
+
+			return isset( $field['id'] ) ? $field['id'] : '';
+		}
+
+		public function is_options_page_mb() {
+			return false;
+		}
+
+		public function doing_options_page() {
+			return false;
+		}
+	};
+}
+
+function dispatch_logged_out( $hook ) {
+	reset_state();
+	$_GET                          = array( 'cp_action' => $hook );
+	$_POST                         = array();
+	$_REQUEST                      = array( 'cp_action' => $hook );
+	$GLOBALS['dispatched_actions'] = array();
+
+	$error = null;
+
+	try {
+		$GLOBALS['test_core']->request_actions();
+	} catch ( Throwable $e ) {
+		$error = $e;
+	}
+
+	$dispatch = isset( $GLOBALS['dispatched_actions'][0] ) ? $GLOBALS['dispatched_actions'][0] : array();
+
+	return array( $error, $dispatch );
+}
+
+function expect_quiet_dispatch( $hook, $message ) {
+	list( $error, $dispatch ) = dispatch_logged_out( $hook );
+
+	if ( null !== $error ) {
+		echo 'error ' . $message . ': ' . $error->getMessage() . "\n";
+	}
+
+	$callbacks = isset( $dispatch['callbacks'] ) ? $dispatch['callbacks'] : 0;
+	$args_ok   = isset( $dispatch['args'][0]['cp_action'] ) && $hook === $dispatch['args'][0]['cp_action'];
+
+	expect(
+		null === $error
+		&& $callbacks >= 1
+		&& $args_ok
+		&& empty( $GLOBALS['state_changes'] )
+		&& isset( $dispatch['hook'] ) && $hook === $dispatch['hook'],
+		$message
+	);
+}
+
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', '/tmp/' );
+}
+
+if ( ! defined( 'CP_LIVE_PLUGIN_VERSION' ) ) {
+	define( 'CP_LIVE_PLUGIN_VERSION', '1.1.1' );
+}
+
+if ( ! defined( 'CP_LIVE_PLUGIN_FILE' ) ) {
+	define( 'CP_LIVE_PLUGIN_FILE', dirname( __DIR__ ) . '/cp-live.php' );
+}
+
+$services->active = array(
+	new class {
+		public function check_live_status() {}
+
+		public function check() {
+			$GLOBALS['service_checked'] = true;
+		}
+
+		public function set_live() {}
+
+		public function update( $key, $value ) {
+			$GLOBALS['service_updated'] = true;
+		}
+	},
+);
+
+$youtube = CP_Live\Services\YouTube::get_instance();
+$resi    = CP_Live\Services\Resi::get_instance();
+$bare    = new class extends CP_Live\Services\Service {
+	public $id = 'bare';
+
+	public function __construct() {
+		parent::__construct();
+	}
+
+	public function check() {}
+
+	public function get_embed() {
+		return '';
+	}
+};
+
+$settings_page = CP_Live\Admin\Settings::get_instance();
+$setup         = CP_Live\Setup\_Init::get_instance();
+$integrations  = CP_Live\Integrations\_Init::get_instance();
+$plugin        = CP_Live\_Init::get_instance();
+
+$plugin_src = file_get_contents( dirname( __DIR__ ) . '/cp-live.php' );
+$fn_start   = strpos( $plugin_src, 'function cp_live_load_textdomain' );
+$fn_end     = strpos( $plugin_src, 'add_action', $fn_start );
+if ( false === $fn_start || false === $fn_end ) {
+	fwrite( STDERR, "Could not load the textdomain callback.\n" );
+	exit( 1 );
+}
+eval( substr( $plugin_src, $fn_start, $fn_end - $fn_start ) );
+add_action( 'init', 'cp_live_load_textdomain' );
+
+// These hooks are registered when location streams are enabled.
+add_action( 'save_post_cploc_location', array( $locations, 'flush_cache' ) );
+add_action( 'cploc_location_meta_details', array( $locations, 'location_meta' ), 10, 2 );
+add_action( 'admin_init', array( $locations, 'maybe_force_pull' ) );
+
+$youtube_box = settings_box();
+$youtube->set_context();
+$youtube->settings( $youtube_box );
+$youtube->set_context( 'loc' );
+$youtube->settings( settings_box() );
+$youtube->set_context();
+expect( count( $youtube_box->fields ) > 0, 'youtube settings box still receives fields' );
+
+$resi_box = settings_box();
+$resi->set_context();
+$resi->settings( $resi_box );
+$resi->set_context( 'loc' );
+$resi->settings( settings_box() );
+$resi->set_context();
+expect( count( $resi_box->fields ) > 0, 'resi settings box still receives fields' );
+
+$bare_box = settings_box();
+$bare->set_context();
+$bare->settings( $bare_box );
+expect( count( $bare_box->fields ) > 0, 'service settings box still receives fields' );
+
+$advanced_box = settings_box();
+$locations->advanced_settings( $advanced_box );
+expect( count( $advanced_box->fields ) > 0, 'advanced settings box still receives fields' );
+
+$live_field = new class {
+	public $value = '1';
+	public $data_to_save = array();
+
+	public function get_cmb() {
+		return $this;
+	}
+};
+reset_state();
+$youtube->set_context();
+$youtube->live_override( true, 'updated', $live_field );
+expect(
+	! empty( $GLOBALS['state_changes'] ) && ! empty( $live_field->data_to_save['live_start'] ),
+	'manual live field still updates'
+);
+$youtube->set_context();
+
+$youtube->set_context( 'keep' );
+$resi->set_context( 'keep' );
+$bare->set_context( 'keep' );
+expect_quiet_dispatch( 'cp_live_settings', 'settings hook with a request array returns quietly' );
+expect_quiet_dispatch( 'cp_live_settings_advanced', 'advanced settings hook with a request array returns quietly' );
+expect_quiet_dispatch( 'cmb2_save_field_is_live', 'field save hook with a request array returns quietly' );
+expect_quiet_dispatch( 'cmb2_save_field_youtube_is_live', 'youtube field save hook with a request array returns quietly' );
+expect_quiet_dispatch( 'cmb2_save_field_resi_is_live', 'resi field save hook with a request array returns quietly' );
+expect(
+	'keep' === $youtube->context && 'keep' === $resi->context && 'keep' === $bare->context,
+	'field save hook leaves service context unchanged'
+);
+$youtube->set_context();
+$resi->set_context();
+$bare->set_context();
+
+expect_quiet_dispatch( 'cploc_location_meta_details', 'location meta hook with a request array returns quietly' );
+expect_quiet_dispatch( 'save_post_cploc_location', 'location save hook with a request array returns quietly' );
+expect_quiet_dispatch( 'cmb2_admin_init', 'settings registration hook with a request array returns quietly' );
+
+$active_before = $services->active;
+expect_quiet_dispatch( 'plugins_loaded', 'service registration hook with a request array returns quietly' );
+expect( $active_before === $services->active, 'service registration hook does not replace services' );
+expect( false === $integrations->cp_locations, 'integration registration hook does not load integrations' );
+expect( empty( $GLOBALS['plugin_active_called'] ), 'setup hook with a request array returns quietly' );
+
+expect_quiet_dispatch( 'admin_init', 'admin init hook with a request array returns quietly' );
+$GLOBALS['test_options'] = array(
+	'cp_live_advanced_options' => array( 'feed_check' => 1 ),
+);
+$GLOBALS['pagenow'] = 'post.php';
+$_GET['post']      = '10';
+$GLOBALS['state_changes']   = 0;
+$GLOBALS['service_updated'] = false;
+try {
+	$services->maybe_force_pull( array( 'cp_action' => 'admin_init', 'post' => '10' ) );
+	$locations->maybe_force_pull( array( 'cp_action' => 'admin_init', 'post' => '10' ) );
+	$quiet_force = empty( $GLOBALS['state_changes'] ) && empty( $GLOBALS['service_updated'] );
+} catch ( Throwable $e ) {
+	$quiet_force = false;
+}
+expect( $quiet_force, 'force pull with a request array returns quietly' );
+
+expect_quiet_dispatch( 'init', 'init hook with a request array returns quietly' );
+expect( empty( $GLOBALS['schedule_checked'] ) && empty( $GLOBALS['locale_loaded'] ), 'init hook does not register a schedule or load translations' );
+expect_quiet_dispatch( 'wp_enqueue_scripts', 'script registration hook with a request array returns quietly' );
+
+reset_state();
+$missing_errors = 0;
+foreach ( array( $youtube, $resi, $bare ) as $service ) {
+	$service->set_context( 'keep' );
+
+	try {
+		$service->settings();
+		$service->live_override();
+	} catch ( Throwable $e ) {
+		$missing_errors++;
+	}
+
+	if ( 'keep' !== $service->context ) {
+		$missing_errors++;
+	}
+
+	$service->set_context();
+}
+
+try {
+	$locations->advanced_settings();
+	$locations->location_meta();
+	$locations->flush_cache();
+	$services->load_services();
+} catch ( Throwable $e ) {
+	$missing_errors++;
+}
+
+expect(
+	0 === $missing_errors && isset( $services->active['youtube'] ),
+	'settings and registration callbacks with no arguments stay quiet or keep working'
+);
+
+reset_state();
+$integrations->load_integrations();
+expect( $integrations->cp_locations instanceof CP_Locations, 'integration registration with no arguments still loads' );
+
+reset_state();
+$GLOBALS['service_updated'] = false;
+$GLOBALS['test_options']    = array(
+	'cp_live_advanced_options' => array( 'feed_check' => 1 ),
+);
+$services->active = array(
+	new class {
+		public function check() {}
+
+		public function update( $key, $value ) {
+			$GLOBALS['service_updated'] = true;
+		}
+	},
+);
+$services->maybe_force_pull();
+expect( ! empty( $GLOBALS['service_updated'] ), 'force pull with no arguments still runs' );
+
+reset_state();
+$locations->flush_cache( 10 );
+expect( 1 === $GLOBALS['state_changes'], 'location save with a post id still clears the cache' );
+
+reset_state();
+$setup->register_event();
+expect( ! empty( $GLOBALS['schedule_checked'] ) && empty( $GLOBALS['state_changes'] ), 'schedule registration with no arguments still checks the event' );
 
 if ( $failures > 0 ) {
 	fwrite( STDERR, "{$checks} checks, {$failures} failed\n" );

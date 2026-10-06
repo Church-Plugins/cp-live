@@ -42,7 +42,10 @@ function cp_live() {
  *
  * @return void
  */
-function cp_live_load_textdomain() {
+function cp_live_load_textdomain( $request = null ) {
+	if ( null !== $request ) {
+		return;
+	}
 
 	// Traditional WordPress plugin locale filter
 	$get_locale = get_user_locale();

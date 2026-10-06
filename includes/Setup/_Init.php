@@ -71,7 +71,11 @@ class _Init {
 		return $schedules;
 	}
 
-	public function register_event() {
+	public function register_event( $request = null ) {
+		if ( null !== $request ) {
+			return;
+		}
+
 		// Only run cron job on Sundays
 		if ( ! wp_next_scheduled( 'cp_live_check' ) ) {
 			wp_schedule_event( time(), 'cp-live-check', 'cp_live_check' );
