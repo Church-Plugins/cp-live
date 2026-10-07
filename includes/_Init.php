@@ -62,7 +62,7 @@ class _Init {
 	 * @return void
 	 */
 	public function maybe_setup( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 
@@ -81,7 +81,7 @@ class _Init {
 	 * @author costmo
 	 */
 	public function maybe_init( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 
@@ -98,7 +98,7 @@ class _Init {
 	 * @author costmo
 	 */
 	public function enqueue_scripts( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 

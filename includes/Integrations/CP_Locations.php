@@ -340,7 +340,7 @@ class CP_Locations {
 	 * @author Tanner Moushey
 	 */
 	public function maybe_force_pull( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 

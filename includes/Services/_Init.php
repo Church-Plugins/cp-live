@@ -118,7 +118,7 @@ class _Init {
 	 * @author Tanner Moushey
 	 */
 	public function maybe_force_pull( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 
@@ -183,7 +183,7 @@ class _Init {
 	 * @author Tanner Moushey
 	 */
 	public function load_services( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 

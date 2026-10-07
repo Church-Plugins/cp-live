@@ -72,7 +72,7 @@ class _Init {
 	}
 
 	public function register_event( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 

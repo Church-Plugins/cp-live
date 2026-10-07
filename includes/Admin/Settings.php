@@ -156,7 +156,7 @@ class Settings {
 	}
 
 	public function register_main_options_metabox( $box = null ) {
-		if ( null !== $box && ! \CP_Live\Services\Service::is_cmb2_box( $box ) ) {
+		if ( is_array( $box ) ) {
 			return;
 		}
 

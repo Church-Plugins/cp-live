@@ -42,6 +42,9 @@ function reset_state() {
 	$GLOBALS['schedule_checked']     = false;
 	$GLOBALS['locale_loaded']        = false;
 	$GLOBALS['plugin_active_called'] = false;
+	$GLOBALS['boxes_registered']     = 0;
+	$GLOBALS['registered_box_ids']   = array();
+	$GLOBALS['scripts_enqueued']     = false;
 	$_GET                            = array();
 	$_POST                           = array();
 	$_REQUEST                        = array();
@@ -53,6 +56,11 @@ function add_action( $hook, $callback, $priority = 10, $args = 1 ) {
 
 function do_action( $hook ) {
 	$args = array_slice( func_get_args(), 1 );
+
+	// A hook fired with no values is passed an empty string.
+	if ( array() === $args ) {
+		$args = array( '' );
+	}
 
 	if ( ! isset( $GLOBALS['dispatched_actions'] ) || ! is_array( $GLOBALS['dispatched_actions'] ) ) {
 		$GLOBALS['dispatched_actions'] = array();
@@ -142,7 +150,22 @@ function cp_live() {
 		public $services;
 
 		public function __construct() {
-			$this->services = (object) array( 'active' => array() );
+			$this->services = new class {
+				public $active = array();
+
+				public function get_active_services() {
+					return array();
+				}
+
+				public function get_available_services() {
+					return array(
+						'youtube' => array(
+							'label'   => 'YouTube',
+							'enabled' => 1,
+						),
+					);
+				}
+			};
 		}
 
 		public function schedule_is_now( $schedules = false ) {
@@ -362,6 +385,55 @@ function is_plugin_active( $plugin ) {
 	return true;
 }
 
+function add_shortcode( $tag, $callback ) {}
+
+function get_admin_url( $blog_id = null, $path = '' ) {
+	return 'http://example.test/wp-admin/' . $path;
+}
+
+function wp_parse_args( $args, $defaults = array() ) {
+	if ( ! is_array( $args ) ) {
+		$args = array();
+	}
+
+	return array_merge( $defaults, $args );
+}
+
+function wp_register_script() {
+	return true;
+}
+
+function wp_register_style() {
+	return true;
+}
+
+function wp_enqueue_script() {
+	$GLOBALS['scripts_enqueued'] = true;
+
+	return true;
+}
+
+function wp_enqueue_style() {
+	$GLOBALS['styles_enqueued'] = true;
+
+	return true;
+}
+
+function new_cmb2_box( $args ) {
+	$GLOBALS['boxes_registered']++;
+	$GLOBALS['registered_box_ids'][] = isset( $args['id'] ) ? $args['id'] : '';
+
+	return new class {
+		public function add_field( $field ) {
+			return isset( $field['id'] ) ? $field['id'] : '';
+		}
+
+		public function add_group_field( $id, $field ) {
+			return isset( $field['id'] ) ? $field['id'] : '';
+		}
+	};
+}
+
 function settings_box() {
 	return new class {
 		public $fields = array();
@@ -432,6 +504,14 @@ if ( ! defined( 'CP_LIVE_PLUGIN_VERSION' ) ) {
 
 if ( ! defined( 'CP_LIVE_PLUGIN_FILE' ) ) {
 	define( 'CP_LIVE_PLUGIN_FILE', dirname( __DIR__ ) . '/cp-live.php' );
+}
+
+if ( ! defined( 'CP_LIVE_STORE_URL' ) ) {
+	define( 'CP_LIVE_STORE_URL', 'https://example.test' );
+}
+
+if ( ! defined( 'WP_LANG_DIR' ) ) {
+	define( 'WP_LANG_DIR', '/tmp/languages' );
 }
 
 $services->active = array(
@@ -547,6 +627,7 @@ $bare->set_context();
 expect_quiet_dispatch( 'cploc_location_meta_details', 'location meta hook with a request array returns quietly' );
 expect_quiet_dispatch( 'save_post_cploc_location', 'location save hook with a request array returns quietly' );
 expect_quiet_dispatch( 'cmb2_admin_init', 'settings registration hook with a request array returns quietly' );
+expect( empty( $GLOBALS['boxes_registered'] ), 'settings registration hook with a request array does not register pages' );
 
 $active_before = $services->active;
 expect_quiet_dispatch( 'plugins_loaded', 'service registration hook with a request array returns quietly' );
@@ -555,21 +636,39 @@ expect( false === $integrations->cp_locations, 'integration registration hook do
 expect( empty( $GLOBALS['plugin_active_called'] ), 'setup hook with a request array returns quietly' );
 
 expect_quiet_dispatch( 'admin_init', 'admin init hook with a request array returns quietly' );
-$GLOBALS['test_options'] = array(
+reset_state();
+$GLOBALS['service_updated'] = false;
+$GLOBALS['test_options']    = array(
 	'cp_live_advanced_options' => array( 'feed_check' => 1 ),
 );
 $GLOBALS['pagenow'] = 'post.php';
-$_GET['post']      = '10';
-$GLOBALS['state_changes']   = 0;
-$GLOBALS['service_updated'] = false;
+$_GET               = array(
+	'cp_action' => 'admin_init',
+	'post'      => '10',
+);
+$_POST              = array();
+$_REQUEST           = $_GET;
+$services->active   = array(
+	new class {
+		public function check() {
+			$GLOBALS['service_checked'] = true;
+		}
+
+		public function update( $key, $value ) {
+			$GLOBALS['service_updated'] = true;
+		}
+	},
+);
+$quiet_force = true;
 try {
-	$services->maybe_force_pull( array( 'cp_action' => 'admin_init', 'post' => '10' ) );
-	$locations->maybe_force_pull( array( 'cp_action' => 'admin_init', 'post' => '10' ) );
-	$quiet_force = empty( $GLOBALS['state_changes'] ) && empty( $GLOBALS['service_updated'] );
+	$GLOBALS['test_core']->request_actions();
 } catch ( Throwable $e ) {
 	$quiet_force = false;
 }
-expect( $quiet_force, 'force pull with a request array returns quietly' );
+expect(
+	$quiet_force && empty( $GLOBALS['service_updated'] ) && empty( $GLOBALS['state_changes'] ),
+	'force pull with a request array returns quietly'
+);
 
 expect_quiet_dispatch( 'init', 'init hook with a request array returns quietly' );
 expect( empty( $GLOBALS['schedule_checked'] ) && empty( $GLOBALS['locale_loaded'] ), 'init hook does not register a schedule or load translations' );
@@ -598,19 +697,11 @@ try {
 	$locations->advanced_settings();
 	$locations->location_meta();
 	$locations->flush_cache();
-	$services->load_services();
 } catch ( Throwable $e ) {
 	$missing_errors++;
 }
 
-expect(
-	0 === $missing_errors && isset( $services->active['youtube'] ),
-	'settings and registration callbacks with no arguments stay quiet or keep working'
-);
-
-reset_state();
-$integrations->load_integrations();
-expect( $integrations->cp_locations instanceof CP_Locations, 'integration registration with no arguments still loads' );
+expect( 0 === $missing_errors, 'settings callbacks with no arguments return quietly' );
 
 reset_state();
 $GLOBALS['service_updated'] = false;
@@ -626,16 +717,70 @@ $services->active = array(
 		}
 	},
 );
-$services->maybe_force_pull();
-expect( ! empty( $GLOBALS['service_updated'] ), 'force pull with no arguments still runs' );
+do_action( 'admin_init' );
+expect( ! empty( $GLOBALS['service_updated'] ), 'force pull still runs from admin init' );
 
 reset_state();
-$locations->flush_cache( 10 );
+do_action( 'init' );
+expect(
+	! empty( $GLOBALS['schedule_checked'] ) && ! empty( $GLOBALS['locale_loaded'] ) && empty( $GLOBALS['state_changes'] ),
+	'init still checks the schedule and loads translations'
+);
+
+$dist_root = dirname( __DIR__ ) . '/dist';
+$manifest  = json_encode(
+	array(
+		'wpackioEp' => array(
+			'main' => array(
+				'assets' => array(
+					'js'  => array( 'main.js' ),
+					'css' => array( 'main.css' ),
+				),
+			),
+		),
+	)
+);
+foreach ( array( 'styles', 'scripts' ) as $entry ) {
+	$entry_dir = $dist_root . '/' . $entry;
+	if ( ! is_dir( $entry_dir ) ) {
+		mkdir( $entry_dir, 0777, true );
+	}
+	file_put_contents( $entry_dir . '/manifest.json', $manifest );
+}
+reset_state();
+try {
+	do_action( 'wp_enqueue_scripts' );
+	$scripts_ran = ! empty( $GLOBALS['scripts_enqueued'] ) && ! empty( $GLOBALS['styles_enqueued'] );
+} catch ( Throwable $e ) {
+	echo 'error script registration: ' . $e->getMessage() . "\n";
+	$scripts_ran = false;
+}
+foreach ( array( 'styles', 'scripts' ) as $entry ) {
+	$manifest_file = $dist_root . '/' . $entry . '/manifest.json';
+	if ( is_file( $manifest_file ) ) {
+		unlink( $manifest_file );
+	}
+}
+expect( $scripts_ran, 'script registration still runs from the scripts hook' );
+
+require_once dirname( __DIR__ ) . '/includes/ChurchPlugins/Setup/Admin/License.php';
+reset_state();
+do_action( 'cmb2_admin_init' );
+expect(
+	! empty( $GLOBALS['boxes_registered'] ) && in_array( 'cp_live_main_options_page', $GLOBALS['registered_box_ids'], true ),
+	'settings registration still runs from the settings hook'
+);
+
+set_include_path( dirname( __DIR__ ) . '/includes' . PATH_SEPARATOR . get_include_path() );
+reset_state();
+do_action( 'plugins_loaded' );
+expect( isset( $services->active['youtube'] ), 'service registration still loads services' );
+expect( $integrations->cp_locations instanceof CP_Locations, 'integration registration still loads' );
+expect( isset( $plugin->setup ), 'setup still runs from the plugins loaded hook' );
+
+reset_state();
+do_action( 'save_post_cploc_location', 10 );
 expect( 1 === $GLOBALS['state_changes'], 'location save with a post id still clears the cache' );
-
-reset_state();
-$setup->register_event();
-expect( ! empty( $GLOBALS['schedule_checked'] ) && empty( $GLOBALS['state_changes'] ), 'schedule registration with no arguments still checks the event' );
 
 if ( $failures > 0 ) {
 	fwrite( STDERR, "{$checks} checks, {$failures} failed\n" );

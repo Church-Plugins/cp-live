@@ -53,7 +53,7 @@ class _Init {
 	/** Actions Methods **************************************/
 	
 	public function load_integrations( $request = null ) {
-		if ( null !== $request ) {
+		if ( is_array( $request ) ) {
 			return;
 		}
 

@@ -43,7 +43,7 @@ function cp_live() {
  * @return void
  */
 function cp_live_load_textdomain( $request = null ) {
-	if ( null !== $request ) {
+	if ( is_array( $request ) ) {
 		return;
 	}
 
