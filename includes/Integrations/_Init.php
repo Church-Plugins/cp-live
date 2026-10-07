@@ -52,7 +52,11 @@ class _Init {
 	
 	/** Actions Methods **************************************/
 	
-	public function load_integrations() {
+	public function load_integrations( $request = null ) {
+		if ( is_array( $request ) ) {
+			return;
+		}
+
 		if ( function_exists( 'cp_locations' ) ) {
 			$this->cp_locations = CP_Locations::get_instance();
 		}

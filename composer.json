@@ -25,5 +25,22 @@
     "allow-plugins": {
       "composer/installers": true
     }
+  },
+  "scripts": {
+    "lint": [
+      "php -l cp-live.php",
+      "php -l includes/Admin/Request_Actions.php",
+      "php -l includes/Admin/Settings.php",
+      "php -l includes/Services/_Init.php",
+      "php -l includes/Services/Service.php",
+      "php -l includes/Services/YouTube.php",
+      "php -l includes/Services/Resi.php",
+      "php -l includes/Integrations/CP_Locations.php",
+      "php -l includes/Integrations/_Init.php",
+      "php -l includes/Setup/_Init.php",
+      "php -l includes/_Init.php",
+      "php -l tests/request-actions.php"
+    ],
+    "test": "php tests/request-actions.php"
   }
 }
