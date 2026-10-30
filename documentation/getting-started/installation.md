@@ -15,8 +15,7 @@ This guide walks you through installing and activating CP Live on your WordPress
 
 Before installing CP Live:
 
-- A WordPress site running version 5.0 or higher
-- PHP 7.0 or higher
+- A WordPress site
 - A valid CP Live license key from [ChurchPlugins](https://churchplugins.com)
 - An active streaming account with YouTube or Resi
 

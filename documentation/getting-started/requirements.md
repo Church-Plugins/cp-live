@@ -15,8 +15,6 @@ This document outlines the system requirements and dependencies for running CP L
 
 | Requirement | Minimum Version |
 | --- | --- |
-| WordPress | 5.0+ |
-| PHP | 7.0+ |
 | MySQL | 5.6+ |
 
 ## Streaming Service Requirements
