@@ -15,7 +15,7 @@ This guide explains how to get support for CP Live and what information to inclu
 
 ### ChurchPlugins Support Portal
 
-For premium license holders, submit support requests through the [ChurchPlugins support portal](https://churchplugins.com/support). Premium customers receive priority support.
+Support is for license holders. Submit support requests through the [Church Plugins support portal](https://churchplugins.com/support).
 
 ### Documentation
 
