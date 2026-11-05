@@ -195,7 +195,11 @@ class YouTube extends Service{
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function settings( $cmb ) {
+	public function settings( $cmb = null ) {
+		if ( ! self::is_cmb2_box( $cmb ) ) {
+			return;
+		}
+
 		// add prefix to fields if we are not in the global context. Other services may use the same id.
 		$prefix = 'global' != $this->context ? $this->id . '_' : '';
 

@@ -155,7 +155,10 @@ class Settings {
 		}
 	}
 
-	public function register_main_options_metabox() {
+	public function register_main_options_metabox( $box = null ) {
+		if ( is_array( $box ) ) {
+			return;
+		}
 
 		/**
 		 * Registers main options page menu item and form.

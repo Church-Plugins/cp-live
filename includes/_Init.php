@@ -61,7 +61,11 @@ class _Init {
 	 *
 	 * @return void
 	 */
-	public function maybe_setup() {
+	public function maybe_setup( $request = null ) {
+		if ( is_array( $request ) ) {
+			return;
+		}
+
 		if ( ! $this->check_required_plugins() ) {
 			return;
 		}
@@ -76,7 +80,10 @@ class _Init {
 	 * @return void
 	 * @author costmo
 	 */
-	public function maybe_init() {
+	public function maybe_init( $request = null ) {
+		if ( is_array( $request ) ) {
+			return;
+		}
 
 		if ( ! $this->check_required_plugins() ) {
 			return;
@@ -90,7 +97,11 @@ class _Init {
 	 * @return void
 	 * @author costmo
 	 */
-	public function enqueue_scripts() {
+	public function enqueue_scripts( $request = null ) {
+		if ( is_array( $request ) ) {
+			return;
+		}
+
 		$this->enqueue->enqueue( 'styles', 'main', [] );
 		$this->enqueue->enqueue( 'scripts', 'main', [ 'js_dep' => [ 'jquery' ] ]);
 	}

@@ -1,6 +1,7 @@
 <?php
 namespace CP_Live\Services;
 
+use CP_Live\Admin\Request_Actions;
 use CP_Live\Admin\Settings;
 
 /**
@@ -72,13 +73,21 @@ class _Init {
 	}
 	
 	/**
-	 * Check schedules and trigger service live checks
+	 * Check schedules and trigger service live checks.
+	 *
+	 * Adds capability and nonce checks to admin request actions. Scheduled
+	 * cron calls this hook directly and is unchanged.
+	 *
+	 * @param array|null $request Request vars for an admin request action.
 	 *
 	 * @since  1.0.0
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function check() {
+	public function check( $request = null ) {
+		if ( ! Request_Actions::is_allowed( Request_Actions::LIVE_CHECK, $request ) ) {
+			return;
+		}
 
 		$check_for_live = cp_live()->schedule_is_now();
 		
@@ -108,7 +117,11 @@ class _Init {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function maybe_force_pull() {
+	public function maybe_force_pull( $request = null ) {
+		if ( is_array( $request ) ) {
+			return;
+		}
+
 		if ( ! Settings::get_advanced( 'feed_check', false ) ) {
 			return;
 		}
@@ -169,7 +182,11 @@ class _Init {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function load_services() {
+	public function load_services( $request = null ) {
+		if ( is_array( $request ) ) {
+			return;
+		}
+
 		foreach( $this->get_active_services() as $service => $data ) {
 			$this->active[ $service ] = $data['class']::get_instance();
 		}

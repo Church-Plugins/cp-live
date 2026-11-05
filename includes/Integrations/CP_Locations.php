@@ -2,6 +2,7 @@
 
 namespace CP_Live\Integrations;
 
+use CP_Live\Admin\Request_Actions;
 use CP_Live\Admin\Settings;
 use CP_Live\Services\Service;
 
@@ -146,13 +147,21 @@ class CP_Locations {
 	}
 	
 	/**
-	 * Check the sites to see if any of them are live
-	 * 
+	 * Check the sites to see if any of them are live.
+	 *
+	 * Adds capability and nonce checks to admin request actions. Scheduled
+	 * cron calls this hook directly and is unchanged.
+	 *
+	 * @param array|null $request Request vars for an admin request action.
+	 *
 	 * @since  1.0.0
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function check() {
+	public function check( $request = null ) {
+		if ( ! Request_Actions::is_allowed( Request_Actions::LIVE_CHECK, $request ) ) {
+			return;
+		}
 
 		foreach( $this->sites_to_check() as $location_id => $data ) {
 
@@ -189,7 +198,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function flush_cache() {
+	public function flush_cache( $post_id = null ) {
+		if ( ! is_numeric( $post_id ) ) {
+			return;
+		}
+
 		delete_site_transient( 'cp_sites_to_check' );
 	}
 	
@@ -200,7 +213,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function location_meta() {
+	public function location_meta( $cmb = null, $location = null ) {
+		if ( ! Service::is_cmb2_box( $cmb ) ) {
+			return;
+		}
+
 		if ( ! function_exists( 'cp_locations' ) ) {
 			return;
 		}
@@ -297,7 +314,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function advanced_settings( $cmb ) {
+	public function advanced_settings( $cmb = null ) {
+		if ( ! Service::is_cmb2_box( $cmb ) ) {
+			return;
+		}
+
 		$cmb->add_field( array(
 			'name'    => __( 'Enable Location Streams', 'cp-live' ),
 			'id'      => 'cp_locations_enabled',
@@ -318,7 +339,11 @@ class CP_Locations {
 	 *
 	 * @author Tanner Moushey
 	 */
-	public function maybe_force_pull() {
+	public function maybe_force_pull( $request = null ) {
+		if ( is_array( $request ) ) {
+			return;
+		}
+
 		global $pagenow;
 		
 		if ( ( $pagenow != 'post.php' ) || empty( $_GET['post'] ) ) {
