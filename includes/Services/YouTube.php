@@ -82,7 +82,7 @@ class YouTube extends Service{
 		$videos = $this->get_video_details( $ids );
 
 		if ( ! empty( $videos->items ) ) {
-			$selected = $this->select_broadcast( $videos->items );
+			$selected = $this->select_broadcast( $videos->items, $type );
 
 			// every broadcast returned is stale, nothing to show
 			if ( ! $selected ) {
@@ -102,20 +102,28 @@ class YouTube extends Service{
 	/**
 	 * Choose the broadcast to embed from the video details returned by the API.
 	 *
-	 * Broadcasts that are actually live always win. Otherwise, broadcasts whose scheduled start
-	 * is older than the live video duration are ignored as stale (e.g. an "upcoming" broadcast
-	 * that was scheduled but never streamed), and the remaining broadcast scheduled closest to
-	 * now is used.
+	 * Broadcasts that are actually live always win. Otherwise, broadcasts scheduled to start more
+	 * than a couple of hours ago are ignored as stale (e.g. an "upcoming" broadcast that was
+	 * scheduled but never streamed), and the remaining broadcast scheduled closest to now is used.
 	 *
-	 * @param array $videos Video resources from the videos endpoint (liveStreamingDetails part).
+	 * Closest to now (rather than next in the future) is deliberate: checks run around service
+	 * time, so the broadcast we want is usually scheduled a few minutes before the check.
+	 *
+	 * @param array  $videos Video resources from the videos endpoint (liveStreamingDetails part).
+	 * @param string $type   The eventType used for the search (live, upcoming, completed).
 	 *
 	 * @return string|false The selected video id, or false if every broadcast is stale.
 	 * @since  1.1.2
 	 */
-	protected function select_broadcast( $videos ) {
-		$now         = time();
-		$stale_after = absint( Settings::get_advanced( 'live_video_duration', 6 ) ) * HOUR_IN_SECONDS;
-		$stale_after = max( $stale_after, HOUR_IN_SECONDS );
+	protected function select_broadcast( $videos, $type = 'live' ) {
+		$now = time();
+
+		/**
+		 * How long after its scheduled start an unstarted broadcast is still considered valid.
+		 *
+		 * @param int $stale_after Seconds. Default 2 hours.
+		 */
+		$stale_after = absint( apply_filters( 'cp_live_youtube_stale_broadcast_after', 2 * HOUR_IN_SECONDS ) );
 
 		$video    = false;
 		$distance = PHP_INT_MAX;
@@ -125,6 +133,11 @@ class YouTube extends Service{
 
 			// a broadcast that has started and not ended is the one we want
 			if ( ! empty( $details->actualStartTime ) && empty( $details->actualEndTime ) ) {
+				return $v->id;
+			}
+
+			// results from a live search are live even if the details lag behind (e.g. no start time yet)
+			if ( 'live' === $type && empty( $details->actualEndTime ) ) {
 				return $v->id;
 			}
 
