@@ -70,40 +70,26 @@ class YouTube extends Service{
 		// default to first video in feed
 		$video = $body->items[0]->id->videoId;
 
+		$ids = [];
 
-		// if we have multiple broadcasts detected, try to find the one that is schedule to start when we expect it to
-		if ( count( $body->items ) > 1 ) {
-			$ids = [];
+		foreach( $body->items as $item ) {
+			$ids[] = $item->id->videoId;
+		}
 
-			foreach( $body->items as $item ) {
-				$ids[] = $item->id->videoId;
+		// Look up schedule details so we can choose the right broadcast. This runs even for a
+		// single result so an abandoned broadcast (scheduled in the past, never started or ended)
+		// is not embedded on its own.
+		$videos = $this->get_video_details( $ids );
+
+		if ( ! empty( $videos->items ) ) {
+			$selected = $this->select_broadcast( $videos->items );
+
+			// every broadcast returned is stale, nothing to show
+			if ( ! $selected ) {
+				return;
 			}
 
-			$videos = $this->get_video_details( $ids );
-
-			if ( ! empty( $videos->items ) ) {
-				$timestamp = 999999999999999999999;
-
-				// loop through the broadcasts and use the one that is happening next
-				foreach( $videos->items as $v ) {
-					if ( empty( $v->liveStreamingDetails ) || empty( $v->liveStreamingDetails->scheduledStartTime ) ) {
-						continue;
-					}
-
-					if ( ! $start_time = strtotime( $v->liveStreamingDetails->scheduledStartTime ) ) {
-						continue;
-					}
-
-					// if the scheduled time is more than the current time + buffer x2, move on
-					if ( $start_time > $timestamp ) {
-						continue;
-					}
-
-					$video = $v->id;
-					$timestamp = $start_time;
-				}
-			}
-
+			$video = $selected;
 		}
 
 		$url = sprintf( 'https://youtube.com/watch?v=%s', urlencode( $video ) );
@@ -111,6 +97,59 @@ class YouTube extends Service{
 		$this->update( 'video_url', $url );
 
 		$this->set_live();
+	}
+
+	/**
+	 * Choose the broadcast to embed from the video details returned by the API.
+	 *
+	 * Broadcasts that are actually live always win. Otherwise, broadcasts whose scheduled start
+	 * is older than the live video duration are ignored as stale (e.g. an "upcoming" broadcast
+	 * that was scheduled but never streamed), and the remaining broadcast scheduled closest to
+	 * now is used.
+	 *
+	 * @param array $videos Video resources from the videos endpoint (liveStreamingDetails part).
+	 *
+	 * @return string|false The selected video id, or false if every broadcast is stale.
+	 * @since  1.1.2
+	 */
+	protected function select_broadcast( $videos ) {
+		$now         = time();
+		$stale_after = absint( Settings::get_advanced( 'live_video_duration', 6 ) ) * HOUR_IN_SECONDS;
+		$stale_after = max( $stale_after, HOUR_IN_SECONDS );
+
+		$video    = false;
+		$distance = PHP_INT_MAX;
+
+		foreach( $videos as $v ) {
+			$details = $v->liveStreamingDetails ?? null;
+
+			// a broadcast that has started and not ended is the one we want
+			if ( ! empty( $details->actualStartTime ) && empty( $details->actualEndTime ) ) {
+				return $v->id;
+			}
+
+			if ( empty( $details->scheduledStartTime ) ) {
+				continue;
+			}
+
+			if ( ! $start_time = strtotime( $details->scheduledStartTime ) ) {
+				continue;
+			}
+
+			// scheduled too long ago to still be the broadcast we are waiting on
+			if ( $start_time < $now - $stale_after ) {
+				continue;
+			}
+
+			$diff = abs( $start_time - $now );
+
+			if ( $diff < $distance ) {
+				$video    = $v->id;
+				$distance = $diff;
+			}
+		}
+
+		return $video;
 	}
 
 	/**
